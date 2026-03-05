@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rotina 3º Turno — Zeca Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a12;
+    --surface: #111120;
+    --surface2: #181830;
+    --border: #2a2a4a;
+    --accent: #7c6af7;
+    --accent2: #f7a26a;
+    --accent3: #6af7c4;
+    --accent4: #f76a8a;
+    --dog: #f0a040;
+    --text: #e8e8f5;
+    --muted: #7070a0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Syne', sans-serif; min-height: 100vh;
+    padding: 2rem 1.5rem 5rem;
+    background-image:
+      radial-gradient(ellipse 80% 40% at 50% -10%, rgba(124,106,247,0.13) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 30% at 90% 80%, rgba(247,162,106,0.07) 0%, transparent 50%);
+  }
+
+  /* ── HEADER ── */
+  header { text-align: center; margin-bottom: 2.5rem; }
+  .tag {
+    display: inline-block;
+    background: rgba(124,106,247,0.15); border: 1px solid rgba(124,106,247,0.4);
+    color: var(--accent); font-family: 'Space Mono', monospace;
+    font-size: 0.68rem; letter-spacing: 0.15em;
+    padding: 0.28rem 0.8rem; border-radius: 2px; margin-bottom: 0.9rem;
+  }
+  h1 {
+    font-size: clamp(1.9rem, 4.5vw, 3rem); font-weight: 800;
+    line-height: 1.1; letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #e8e8f5 30%, var(--accent) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .subtitle { color: var(--muted); font-size: 0.88rem; margin-top: 0.5rem; }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex; gap: 0.4rem; margin-bottom: 2rem;
+    border-bottom: 1px solid var(--border); padding-bottom: 0;
+  }
+  .tab-btn {
+    background: transparent; border: none; border-bottom: 2px solid transparent;
+    color: var(--muted); font-family: 'Syne', sans-serif; font-weight: 700;
+    font-size: 0.82rem; padding: 0.6rem 1.1rem; cursor: pointer;
+    transition: all 0.18s; margin-bottom: -1px; letter-spacing: 0.02em;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ── BADGES ── */
+  .badges {
+    display: flex; flex-wrap: wrap; gap: 0.5rem;
+    justify-content: center; margin-bottom: 1.5rem;
+  }
+  .badge {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 4px; padding: 0.28rem 0.7rem;
+    font-size: 0.72rem; font-family: 'Space Mono', monospace; color: var(--muted);
+  }
+  .badge b { color: var(--text); }
+  .badge.warn { border-color: rgba(247,106,138,0.4); color: var(--accent4); }
+  .badge.warn b { color: var(--accent4); }
+  .badge.dog  { border-color: rgba(240,160,64,0.4);  color: var(--dog); }
+  .badge.dog b { color: var(--dog); }
+
+  /* ── LEGEND ── */
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 0.45rem;
+    justify-content: center; margin-bottom: 1.5rem;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 0.4rem;
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 0.28rem 0.6rem; border-radius: 4px;
+    font-size: 0.72rem; font-weight: 600;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── SCHEDULE TABLE ── */
+  .table-wrap {
+    overflow-x: auto; border-radius: 10px;
+    border: 1px solid var(--border); margin-bottom: 1.5rem;
+  }
+  table { width: 100%; border-collapse: collapse; min-width: 820px; }
+  thead th {
+    background: var(--surface2); padding: 0.8rem 0.55rem;
+    font-family: 'Space Mono', monospace; font-size: 0.63rem;
+    letter-spacing: 0.1em; color: var(--muted);
+    text-transform: uppercase; text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  thead th:first-child { text-align: left; }
+  thead th.weekend { color: var(--accent2); }
+  thead th.hardday { color: var(--accent4); }
+  thead th.today-col { color: var(--accent3); box-shadow: inset 0 -2px 0 var(--accent3); }
+  .time-col {
+    font-family: 'Space Mono', monospace; font-size: 0.63rem; color: var(--muted);
+    padding: 0.4rem 0.65rem; background: var(--surface);
+    border-right: 1px solid var(--border); white-space: nowrap;
+    vertical-align: middle; border-bottom: 1px solid rgba(255,255,255,0.04); min-width: 55px;
+  }
+  td.cell {
+    padding: 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+    border-right: 1px solid rgba(255,255,255,0.03);
+    vertical-align: middle; text-align: center;
+  }
+  td.cell.today-col { background: rgba(124,106,247,0.04); }
+  .block {
+    padding: 0.42rem 0.32rem; font-size: 0.68rem; font-weight: 600;
+    line-height: 1.3; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 0.1rem;
+  }
+  .block .icon { font-size: 0.9rem; }
+  .b-sleep  { background: rgba(42,32,96,0.65);  color: #9080d0; }
+  .b-work   { background: rgba(32,16,64,0.55);  color: #7050a0; }
+  .b-wake   { background: rgba(40,40,20,0.65);  color: #c0b040; }
+  .b-read   { background: rgba(20,60,50,0.65);  color: #50d0a0; }
+  .b-train  { background: rgba(60,20,40,0.65);  color: #e06080; }
+  .b-study  { background: rgba(20,40,70,0.65);  color: #60a0e0; }
+  .b-free   { background: rgba(50,30,10,0.55);  color: #d09050; }
+  .b-food   { background: rgba(30,50,10,0.55);  color: #90c040; }
+  .b-prep   { background: rgba(50,20,60,0.55);  color: #c060e0; }
+  .b-univ   { background: rgba(20,50,70,0.75);  color: #50b0e0; }
+  .b-nap    { background: rgba(35,25,80,0.65);  color: #8070c0; }
+  .b-off    { background: rgba(10,10,20,0.3);   color: #333355; }
+  .b-wakewe { background: rgba(50,35,10,0.65);  color: #d4a040; }
+  .b-dog    { background: rgba(60,35,5,0.7);    color: #f0a040; border-left: 2px solid #f0a040; }
+  tr:hover td { filter: brightness(1.11); }
+
+  .hardday-banner {
+    background: rgba(247,106,138,0.08); border: 1px solid rgba(247,106,138,0.25);
+    border-radius: 8px; padding: 0.8rem 1.1rem; margin-bottom: 1.2rem;
+    font-size: 0.78rem; color: var(--accent4); line-height: 1.6;
+  }
+  .dog-banner {
+    background: rgba(240,160,64,0.08); border: 1px solid rgba(240,160,64,0.3);
+    border-radius: 8px; padding: 0.8rem 1.1rem; margin-bottom: 1.2rem;
+    font-size: 0.78rem; color: var(--dog); line-height: 1.6;
+  }
+  .note { text-align: center; font-size: 0.7rem; color: var(--muted); margin-top: 0.9rem; font-family: 'Space Mono', monospace; line-height: 1.8; }
+
+  /* ── TRACKER ── */
+  .date-nav {
+    display: flex; align-items: center; justify-content: center;
+    gap: 0.8rem; margin-bottom: 1.5rem;
+  }
+  .date-nav button {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--muted); font-family: 'Space Mono', monospace;
+    font-size: 1rem; width: 36px; height: 36px; border-radius: 6px;
+    cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+  }
+  .date-nav button:hover { border-color: var(--accent); color: var(--accent); }
+  #date-display {
+    font-family: 'Space Mono', monospace; font-size: 0.82rem;
+    color: var(--text); min-width: 190px; text-align: center;
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 0.45rem 0.9rem; border-radius: 6px;
+  }
+  #today-btn {
+    background: rgba(124,106,247,0.15); border: 1px solid rgba(124,106,247,0.4);
+    color: var(--accent); font-family: 'Space Mono', monospace;
+    font-size: 0.62rem; padding: 0.3rem 0.65rem; border-radius: 4px;
+    cursor: pointer; letter-spacing: 0.08em; transition: all 0.15s;
+    width: auto !important; height: auto !important;
+  }
+  #today-btn:hover { background: rgba(124,106,247,0.25); }
+
+  .main-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem; margin-bottom: 1.1rem;
+  }
+  @media (max-width: 680px) { .main-grid { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.3rem; position: relative; overflow: hidden;
+  }
+  .panel::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+  .panel.p-check::before  { background: linear-gradient(90deg, var(--accent), transparent); }
+  .panel.p-score::before  { background: linear-gradient(90deg, var(--accent3), transparent); }
+  .panel.p-chart::before  { background: linear-gradient(90deg, var(--accent2), transparent); }
+  .panel-title {
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted);
+    font-family: 'Space Mono', monospace; margin-bottom: 1rem;
+  }
+
+  /* checklist */
+  .check-list { display: flex; flex-direction: column; gap: 0.45rem; }
+  .check-item {
+    display: flex; align-items: center; gap: 0.65rem;
+    padding: 0.6rem 0.8rem; border-radius: 8px;
+    border: 1px solid transparent; background: var(--surface2);
+    cursor: pointer; transition: all 0.18s; user-select: none;
+  }
+  .check-item:hover { border-color: var(--border); filter: brightness(1.1); }
+  .check-item.checked { background: rgba(106,247,196,0.07); border-color: rgba(106,247,196,0.25); }
+  .check-item.checked .check-label { color: var(--accent3); }
+  .check-item.checked .check-box { background: var(--accent3); border-color: var(--accent3); }
+  .check-item.checked .check-box::after { opacity: 1; }
+  .check-item.skipped { opacity: 0.45; }
+  .check-box {
+    width: 19px; height: 19px; border-radius: 5px; flex-shrink: 0;
+    border: 1.5px solid var(--border); background: transparent;
+    position: relative; transition: all 0.18s;
+  }
+  .check-box::after {
+    content: '✓'; position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    color: var(--bg); font-size: 0.72rem; font-weight: 700;
+    opacity: 0; transition: opacity 0.15s;
+  }
+  .check-icon { font-size: 0.95rem; flex-shrink: 0; }
+  .check-label { font-size: 0.8rem; font-weight: 600; color: var(--text); flex: 1; }
+  .check-sub { font-size: 0.65rem; color: var(--muted); margin-top: 0.08rem; }
+  .skip-badge {
+    font-family: 'Space Mono', monospace; font-size: 0.56rem;
+    color: var(--muted); background: var(--surface); border: 1px solid var(--border);
+    border-radius: 3px; padding: 0.1rem 0.35rem; cursor: pointer; flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .skip-badge:hover { color: var(--accent4); border-color: var(--accent4); }
+  .check-item.skipped .skip-badge { color: var(--accent4); border-color: var(--accent4); }
+
+  /* score */
+  .score-big {
+    font-size: 3.2rem; font-weight: 800; line-height: 1;
+    font-family: 'Space Mono', monospace;
+    background: linear-gradient(135deg, var(--accent3), var(--accent));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .score-label { font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem; margin-bottom: 1rem; }
+  .score-bar-wrap { height: 7px; background: var(--surface2); border-radius: 99px; overflow: hidden; margin-bottom: 1rem; }
+  .score-bar-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent3)); transition: width 0.5s cubic-bezier(.4,0,.2,1); }
+  .pillar-scores { display: flex; flex-direction: column; gap: 0.45rem; }
+  .pillar-row { display: flex; align-items: center; gap: 0.55rem; }
+  .pillar-icon { font-size: 0.85rem; width: 18px; text-align: center; flex-shrink: 0; }
+  .pillar-name { font-size: 0.7rem; color: var(--muted); width: 72px; flex-shrink: 0; }
+  .pillar-bar-wrap { flex: 1; height: 4px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+  .pillar-bar-fill { height: 100%; border-radius: 99px; transition: width 0.4s; }
+  .pillar-count { font-family: 'Space Mono', monospace; font-size: 0.62rem; color: var(--muted); width: 26px; text-align: right; flex-shrink: 0; }
+
+  /* streak + week */
+  .streak-row { display: flex; gap: 1.5rem; margin-bottom: 1rem; }
+  .streak-num { font-family: 'Space Mono', monospace; font-size: 2rem; font-weight: 700; line-height: 1; }
+  .streak-num.fire { color: var(--dog); }
+  .streak-num.best { color: var(--accent2); }
+  .streak-detail { font-size: 0.67rem; color: var(--muted); margin-top: 0.18rem; }
+  .week-dots { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+  .week-dot {
+    width: 30px; height: 30px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 1px;
+    font-size: 0.58rem; font-family: 'Space Mono', monospace; font-weight: 700;
+    border: 1px solid var(--border); background: var(--surface2); color: var(--muted);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .week-dot:hover { filter: brightness(1.2); }
+  .week-dot.full    { background: rgba(106,247,196,0.15); border-color: rgba(106,247,196,0.4); color: var(--accent3); }
+  .week-dot.partial { background: rgba(124,106,247,0.1);  border-color: rgba(124,106,247,0.3); color: var(--accent); }
+  .week-dot.low     { background: rgba(247,106,138,0.07); border-color: rgba(247,106,138,0.2); color: var(--accent4); }
+  .week-dot.today-ring { box-shadow: 0 0 0 2px var(--accent); }
+  .week-dot-lbl { font-size: 0.46rem; }
+
+  /* chart */
+  .full-panel { grid-column: 1 / -1; }
+  .chart-wrap { width: 100%; }
+
+  .hdnote {
+    background: rgba(247,106,138,0.07); border: 1px solid rgba(247,106,138,0.2);
+    border-radius: 6px; padding: 0.55rem 0.85rem; margin-bottom: 0.85rem;
+    font-size: 0.73rem; color: var(--accent4); line-height: 1.5;
+  }
+
+  .divider { height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); margin: 2rem 0; }
+
+  /* tips */
+  .tips-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px,1fr)); gap: 1rem; margin-bottom: 2rem; }
+  .tip-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.2rem; position: relative; overflow: hidden; }
+  .tip-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+  .tip-card.c-p::before { background: linear-gradient(90deg, var(--accent), transparent); }
+  .tip-card.c-o::before { background: linear-gradient(90deg, var(--accent2), transparent); }
+  .tip-card.c-g::before { background: linear-gradient(90deg, var(--accent3), transparent); }
+  .tip-card.c-r::before { background: linear-gradient(90deg, var(--accent4), transparent); }
+  .tip-icon { font-size: 1.5rem; margin-bottom: 0.55rem; display: block; }
+  .tip-card h3 { font-size: 0.85rem; font-weight: 700; margin-bottom: 0.4rem; }
+  .tip-card p  { font-size: 0.77rem; color: var(--muted); line-height: 1.65; }
+
+  .alerts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px,1fr)); gap: 1rem; }
+  .alert-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.2rem; position: relative; }
+  .alert-num { font-family: 'Space Mono', monospace; font-size: 2rem; font-weight: 700; color: var(--border); position: absolute; top: 0.7rem; right: 0.9rem; line-height: 1; }
+  .alert-card h3 { font-size: 0.85rem; font-weight: 700; margin-bottom: 0.4rem; color: var(--accent4); }
+  .alert-card p  { font-size: 0.77rem; color: var(--muted); line-height: 1.65; }
+
+  .section-title { font-size: 1.2rem; font-weight: 800; margin-bottom: 1rem; letter-spacing: -0.01em; }
+  .section-title span { color: var(--accent); }
+
+  .reset-area { text-align: center; margin-top: 1.5rem; }
+  .reset-btn {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--muted); font-family: 'Space Mono', monospace;
+    font-size: 0.63rem; letter-spacing: 0.1em;
+    padding: 0.38rem 0.9rem; border-radius: 4px; cursor: pointer; transition: all 0.15s;
+  }
+  .reset-btn:hover { border-color: var(--accent4); color: var(--accent4); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="tag">🌙 3º TURNO + FACULDADE + ZECA</div>
+  <h1>Rotina & Tracker</h1>
+  <p class="subtitle">Quadro semanal · Checklist diário · Gráfico de produtividade</p>
+</header>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab-btn active" data-tab="quadro">📅 Quadro Semanal</button>
+  <button class="tab-btn" data-tab="tracker">✅ Tracker Diário</button>
+  <button class="tab-btn" data-tab="dicas">💡 Dicas & Alertas</button>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     TAB 1 — QUADRO SEMANAL
+════════════════════════════════════════════════ -->
+<div class="tab-content active" id="tab-quadro">
+
+  <div class="badges">
+    <div class="badge">Seg–Sex: <b>22h30 → 06h28</b></div>
+    <div class="badge">Sex→Sáb: <b>22h30 → 06h18</b></div>
+    <div class="badge warn">Qua e Qui: <b>🔴 Dia Pesado</b></div>
+    <div class="badge">Faculdade Qua/Qui: <b>08h30–11h20</b></div>
+    <div class="badge">Sáb e Dom: <b>Folga 🎉</b></div>
+    <div class="badge dog">🐕 Zeca: <b>passeio diário</b></div>
+    <div class="badge">Treino: <b>Seg · Ter · Sáb</b></div>
+    <div class="badge">Estudo: <b>Ter · Sex · Dom</b></div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="dot" style="background:#9080d0"></div> Sono</div>
+    <div class="legend-item"><div class="dot" style="background:#8070c0"></div> Recuperação</div>
+    <div class="legend-item"><div class="dot" style="background:#7050a0"></div> Trabalho</div>
+    <div class="legend-item"><div class="dot" style="background:#50b0e0"></div> 🎓 Faculdade</div>
+    <div class="legend-item"><div class="dot" style="background:#c0b040"></div> Acordar/Refeição</div>
+    <div class="legend-item"><div class="dot" style="background:#f0a040"></div> 🐕 Zeca</div>
+    <div class="legend-item"><div class="dot" style="background:#50d0a0"></div> 📚 Leitura</div>
+    <div class="legend-item"><div class="dot" style="background:#e06080"></div> 🏋️ Treino</div>
+    <div class="legend-item"><div class="dot" style="background:#60a0e0"></div> 🧠 Estudo</div>
+    <div class="legend-item"><div class="dot" style="background:#d09050"></div> 🎮 Livre</div>
+    <div class="legend-item"><div class="dot" style="background:#c060e0"></div> Prep. Trabalho</div>
+  </div>
+
+  <div class="dog-banner">
+    🐕 <strong>Zeca entra todo dia</strong> logo após acordar — 30 min de passeio antes da leitura. Força você a pegar luz solar, movimenta o corpo e ancora a rotina.
+  </div>
+  <div class="hardday-banner">
+    🔴 <strong>Qua e Qui:</strong> trabalho → faculdade → ~28h acordado. Sem treino, sem estudo. Dorme ao chegar, passeia com o Zeca ao acordar, leitura só se sobrar energia.
+  </div>
+
+  <div class="table-wrap">
+  <table id="schedule-table">
+    <thead>
+      <tr>
+        <th>Horário</th>
+        <th id="th-1">SEG</th>
+        <th id="th-2">TER</th>
+        <th id="th-3" class="hardday">QUA 🔴</th>
+        <th id="th-4" class="hardday">QUI 🔴</th>
+        <th id="th-5">SEX</th>
+        <th id="th-6" class="weekend">SÁB ☀️</th>
+        <th id="th-0" class="weekend">DOM ☀️</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="time-col">06h28</td>
+        <td class="cell" id="c1-a"><div class="block b-wake"><span class="icon">🍽️</span><span>Chegar<br>refeição leve</span></div></td>
+        <td class="cell" id="c2-a"><div class="block b-wake"><span class="icon">🍽️</span><span>Chegar<br>refeição leve</span></div></td>
+        <td class="cell" id="c3-a"><div class="block b-univ"><span class="icon">🎓</span><span>Vai direto<br>p/ faculdade</span></div></td>
+        <td class="cell" id="c4-a"><div class="block b-univ"><span class="icon">🎓</span><span>Vai direto<br>p/ faculdade</span></div></td>
+        <td class="cell" id="c5-a"><div class="block b-wake"><span class="icon">🍽️</span><span>Chegar<br>refeição leve</span></div></td>
+        <td class="cell" id="c6-a"><div class="block b-wakewe"><span class="icon">🍳</span><span>Chegar ~6h20<br>refeição leve</span></div></td>
+        <td class="cell" id="c0-a"><div class="block b-off"><span class="icon">—</span><span>dormindo</span></div></td>
+      </tr>
+      <tr>
+        <td class="time-col">07h00<br>↓<br>15h00</td>
+        <td class="cell" id="c1-b"><div class="block b-sleep" style="height:78px"><span class="icon">😴</span><span>SONO ~8h</span></div></td>
+        <td class="cell" id="c2-b"><div class="block b-sleep" style="height:78px"><span class="icon">😴</span><span>SONO ~8h</span></div></td>
+        <td class="cell" id="c3-b"><div class="block b-univ" style="height:78px"><span class="icon">🎓</span><span>FACULDADE<br>08h30–11h20</span></div></td>
+        <td class="cell" id="c4-b"><div class="block b-univ" style="height:78px"><span class="icon">🎓</span><span>FACULDADE<br>08h30–11h20</span></div></td>
+        <td class="cell" id="c5-b"><div class="block b-sleep" style="height:78px"><span class="icon">😴</span><span>SONO ~8h</span></div></td>
+        <td class="cell" id="c6-b"><div class="block b-sleep" style="height:78px"><span class="icon">😴</span><span>SONO ~8h</span></div></td>
+        <td class="cell" id="c0-b"><div class="block b-sleep" style="height:78px"><span class="icon">😴</span><span>SONO livre<br>→ ~10/11h</span></div></td>
+      </tr>
+      <tr>
+        <td class="time-col">11h30</td>
+        <td class="cell" id="c1-c"><div class="block b-off"><span class="icon">—</span><span>dormindo</span></div></td>
+        <td class="cell" id="c2-c"><div class="block b-off"><span class="icon">—</span><span>dormindo</span></div></td>
+        <td class="cell" id="c3-c"><div class="block b-nap"><span class="icon">💤</span><span>Chega em casa<br>DORME JÁ</span></div></td>
+        <td class="cell" id="c4-c"><div class="block b-nap"><span class="icon">💤</span><span>Chega em casa<br>DORME JÁ</span></div></td>
+        <td class="cell" id="c5-c"><div class="block b-off"><span class="icon">—</span><span>dormindo</span></div></td>
+        <td class="cell" id="c6-c"><div class="block b-off"><span class="icon">—</span><span>dormindo</span></div></td>
+        <td class="cell" id="c0-c"><div class="block b-wake"><span class="icon">☀️</span><span>Acordar ~11h<br>café + luz</span></div></td>
+      </tr>
+      <tr>
+        <td class="time-col">15h00</td>
+        <td class="cell" id="c1-d"><div class="block b-wake"><span class="icon">☀️</span><span>Acordar<br>refeição princ.</span></div></td>
+        <td class="cell" id="c2-d"><div class="block b-wake"><span class="icon">☀️</span><span>Acordar<br>refeição princ.</span></div></td>
+        <td class="cell" id="c3-d"><div class="block b-nap"><span class="icon">💤</span><span>dormindo<br>recuperação</span></div></td>
+        <td class="cell" id="c4-d"><div class="block b-nap"><span class="icon">💤</span><span>dormindo<br>recuperação</span></div></td>
+        <td class="cell" id="c5-d"><div class="block b-wake"><span class="icon">☀️</span><span>Acordar<br>refeição princ.</span></div></td>
+        <td class="cell" id="c6-d"><div class="block b-wake"><span class="icon">☀️</span><span>Acordar ~15h<br>refeição princ.</span></div></td>
+        <td class="cell" id="c0-d"><div class="block b-dog"><span class="icon">🐕</span><span>Passeio Zeca<br>30min ~11h15</span></div></td>
+      </tr>
+      <tr>
+        <td class="time-col">15h15</td>
+        <td class="cell" id="c1-e"><div class="block b-dog"><span class="icon">🐕</span><span>Passeio Zeca<br>30min</span></div></td>
+        <td class="cell" id="c2-e"><div class="block b-dog"><span class="icon">🐕</span><span>Passeio Zeca<br>30min</span></div></td>
+        <td class="cell" id="c3-e"><div class="block b-nap"><span class="icon">💤</span><span>dormindo</span></div></td>
+        <td class="cell" id="c4-e"><div class="block b-nap"><span class="icon">💤</span><span>dormindo</span></div></td>
+        <td class="cell" id="c5-e"><div class="block b-dog"><span class="icon">🐕</span><span>Passeio Zeca<br>30min</span></div></td>
+        <td class="cell" id="c6-e"><div class="block b-dog"><span class="icon">🐕</span><span>Passeio Zeca<br>30min</span></div></td>
+        <td class="cell" id="c0-e"><div class="block b-read"><span class="icon">📚</span><span>Leitura 1h<br>~11h45</span></div></td>
+      </tr>
+      <tr>
+        <td class="time-col">15h45</td>
+        <td class="cell" id="c1-f"><div class="block b-read"><span class="icon">📚</span><span>Leitura 1h</span></div></td>
+        <td class="cell" id="c2-f"><div class="block b-read"><span class="icon">📚</span><span>Leitura 1h</span></div></td>
+        <td class="cell" id="c3-f"><div class="block b-wake"><span class="icon">☀️</span><span>Acordar ~16h<br>refeição</span></div></td>
+        <td class="cell" id="c4-f"><div class="block b-wake"><span class="icon">☀️</span><span>Acordar ~16h<br>refeição</span></div></td>
+        <td class="cell" id="c5-f"><div class="block b-read"><span class="icon">📚</span><span>Leitura 1h</span></div></td>
+        <td class="cell" id="c6-f"><div class="block b-read"><span class="icon">📚</span><span>Leitura 1h</span></div></td>
+        <td class="cell" id="c0-f"><div class="block b-study"><span class="icon">🧠</span><span>Estudo 1h30</span></div></td>
+      </tr>
+      <tr>
+        <td class="time-col">16h45</td>
+        <td class="cell" id="c1-g"><div class="block b-train"><span class="icon">🏋️</span><span>Treino 1h30</span></div></td>
+        <td class="cell" id="c2-g"><div class="block b-train"><span class="icon">🏋️</span><span>Treino 1h30</span></div></td>
+        <td class="cell" id="c3-g"><div class="block b-dog"><span class="icon">🐕</span><span>Passeio Zeca<br>30min</span></div></td>
+        <td class="cell" id="c4-g"><div class="block b-dog"><span class="icon">🐕</span><span>Passeio Zeca<br>30min</span></div></td>
+        <td class="cell" id="c5-g"><div class="block b-study"><span class="icon">🧠</span><span>Estudo 1h30</span></div></td>
+        <td class="cell" id="c6-g"><div class="block b-train"><span class="icon">🏋️</span><span>Treino 1h30</span></div></td>
+        <td class="cell" id="c0-g"><div class="block b-free"><span class="icon">🎮</span><span>Livre<br>tarde toda</span></div></td>
+      </tr>
+      <tr>
+        <td class="time-col">17h15</td>
+        <td class="cell" id="c1-h"><div class="block b-off"><span class="icon">—</span><span>treino</span></div></td>
+        <td class="cell" id="c2-h"><div class="block b-off"><span class="icon">—</span><span>treino</span></div></td>
+        <td class="cell" id="c3-h"><div class="block b-read"><span class="icon">📚</span><span>Leitura leve<br>30min (se der)</span></div></td>
+        <td class="cell" id="c4-h"><div class="block b-read"><span class="icon">📚</span><span>Leitura leve<br>30min (se der)</span></div></td>
+        <td class="cell" id="c5-h"><div class="block b-off"><span class="icon">—</span><span>estudo</span></div></td>
+        <td class="cell" id="c6-h"><div class="block b-off"><span class="icon">—</span><span>treino</span></div></td>
+        <td class="cell" id="c0-h"><div class="block b-off"><span class="icon">—</span><span>livre</span></div></td>
+      </tr>
+      <tr>
+        <td class="time-col">18h15</td>
+        <td class="cell" id="c1-i"><div class="block b-free"><span class="icon">🎮</span><span>Livre 1h15</span></div></td>
+        <td class="cell" id="c2-i"><div class="block b-study"><span class="icon">🧠</span><span>Estudo 1h30</span></div></td>
+        <td class="cell" id="c3-i"><div class="block b-free"><span class="icon">🎮</span><span>Livre<br>sem culpa</span></div></td>
+        <td class="cell" id="c4-i"><div class="block b-free"><span class="icon">🎮</span><span>Livre<br>sem culpa</span></div></td>
+        <td class="cell" id="c5-i"><div class="block b-free"><span class="icon">🎮</span><span>Livre 1h15</span></div></td>
+        <td class="cell" id="c6-i" rowspan="2"><div class="block b-free" style="height:100%"><span class="icon">🎉</span><span>LIVRE<br>noite toda</span></div></td>
+        <td class="cell" id="c0-i" rowspan="2"><div class="block b-free" style="height:100%"><span class="icon">🎉</span><span>LIVRE<br>noite toda</span></div></td>
+      </tr>
+      <tr>
+        <td class="time-col">19h30</td>
+        <td class="cell" id="c1-j"><div class="block b-food"><span class="icon">🍽️</span><span>Janta leve</span></div></td>
+        <td class="cell" id="c2-j"><div class="block b-food"><span class="icon">🍽️</span><span>Janta leve</span></div></td>
+        <td class="cell" id="c3-j"><div class="block b-food"><span class="icon">🍽️</span><span>Janta leve</span></div></td>
+        <td class="cell" id="c4-j"><div class="block b-food"><span class="icon">🍽️</span><span>Janta leve</span></div></td>
+        <td class="cell" id="c5-j"><div class="block b-food"><span class="icon">🍽️</span><span>Janta leve</span></div></td>
+      </tr>
+      <tr>
+        <td class="time-col">20h30</td>
+        <td class="cell" colspan="5"><div class="block b-prep"><span class="icon">🎒</span><span>Preparação para o trabalho — uniforme, marmita, revisão mental</span></div></td>
+        <td class="cell"><div class="block b-food"><span class="icon">🍽️</span><span>Janta relaxada</span></div></td>
+        <td class="cell"><div class="block b-food"><span class="icon">🍽️</span><span>Janta relaxada</span></div></td>
+      </tr>
+      <tr>
+        <td class="time-col">22h30<br>↓<br>06h28</td>
+        <td class="cell" colspan="5"><div class="block b-work" style="height:74px"><span class="icon">🏭</span><span>TRABALHO — 3º TURNO (Seg a Sex)</span></div></td>
+        <td class="cell"><div class="block b-off" style="height:74px"><span class="icon">🛋️</span><span>Noite livre</span></div></td>
+        <td class="cell"><div class="block b-off" style="height:74px"><span class="icon">🛋️</span><span>Noite livre</span></div></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p class="note" id="today-note"></p>
+
+</div><!-- /tab-quadro -->
+
+<!-- ════════════════════════════════════════════════
+     TAB 2 — TRACKER
+════════════════════════════════════════════════ -->
+<div class="tab-content" id="tab-tracker">
+
+  <div class="date-nav">
+    <button id="prev-btn">‹</button>
+    <div id="date-display">—</div>
+    <button id="next-btn">›</button>
+    <button id="today-btn">HOJE</button>
+  </div>
+
+  <div id="hardday-note" class="hdnote" style="display:none">
+    🔴 <strong>Dia Pesado (Qua/Qui):</strong> ~28h acordado. Sono e Zeca são prioridade. Leitura é opcional. Não há treino nem estudo programados.
+  </div>
+
+  <div class="main-grid">
+    <div class="panel p-check">
+      <div class="panel-title">✦ checklist do dia</div>
+      <div class="check-list" id="checklist"></div>
+    </div>
+
+    <div class="panel p-score">
+      <div class="panel-title">✦ score do dia</div>
+      <div class="score-big" id="score-pct">0%</div>
+      <div class="score-label" id="score-label">0 de 0 tarefas</div>
+      <div class="score-bar-wrap"><div class="score-bar-fill" id="score-bar" style="width:0%"></div></div>
+      <div class="pillar-scores" id="pillar-scores"></div>
+
+      <div style="margin-top:1.3rem">
+        <div class="panel-title">✦ últimos 7 dias</div>
+        <div class="week-dots" id="week-dots"></div>
+      </div>
+      <div style="margin-top:1.2rem">
+        <div class="panel-title">✦ sequências</div>
+        <div class="streak-row">
+          <div><div class="streak-num fire" id="streak-cur">0</div><div class="streak-detail">🔥 atual</div></div>
+          <div><div class="streak-num best" id="streak-best">0</div><div class="streak-detail">🏆 recorde</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel p-chart full-panel">
+      <div class="panel-title">✦ gráfico de produtividade — cresce automaticamente com o tempo</div>
+      <div class="chart-wrap"><canvas id="prodChart" height="150"></canvas></div>
+    </div>
+  </div>
+
+  <div class="reset-area">
+    <button class="reset-btn" id="reset-btn">⚠ APAGAR TODOS OS DADOS</button>
+  </div>
+
+</div><!-- /tab-tracker -->
+
+<!-- ════════════════════════════════════════════════
+     TAB 3 — DICAS & ALERTAS
+════════════════════════════════════════════════ -->
+<div class="tab-content" id="tab-dicas">
+
+  <div class="section-title">Dicas para os dias <span>difíceis</span></div>
+  <div class="tips-grid">
+    <div class="tip-card c-r"><span class="tip-icon">🔴</span><h3>Qua e Qui: sobreviver é vencer</h3><p>Nesses dias você acumula ~28h sem dormir. Não tente ser produtivo — apenas cumpra a faculdade, volte pra casa e durma. Se conseguir ler 15 minutos antes de fechar os olhos, ótimo. Você já fez o mais difícil só de aparecer.</p></div>
+    <div class="tip-card c-p"><span class="tip-icon">🎓</span><h3>Estratégia na faculdade pós-plantão</h3><p>Leve um snack leve (banana, castanhas) pro intervalo. Não tome café depois das 7h se quiser dormir ao chegar. Sente perto da frente da sala. Uma garrafa d'água gelada no rosto resolve muito.</p></div>
+    <div class="tip-card c-o"><span class="tip-icon">🐕</span><h3>Zeca como âncora de consistência</h3><p>Você pode pular a leitura num dia ruim — mas o Zeca vai estar lá esperando todo dia. Isso torna o passeio o hábito mais fácil de manter, e ele puxa o resto da rotina junto. Luz solar + movimento = boot do dia.</p></div>
+    <div class="tip-card c-g"><span class="tip-icon">🏋️</span><h3>Treino: Seg, Ter e Sáb — por quê?</h3><p>São seus três dias com mais energia disponível. Seg e Ter você chega descansado do fim de semana. Sábado você está de folga sem trabalhar na noite anterior. Qua, Qui e Dom ficam livres de treino para recuperação.</p></div>
+    <div class="tip-card c-p"><span class="tip-icon">🍴</span><h3>Alimentação estratégica</h3><p>Refeição 1 (~6h30): leve — fruta, ovos. Refeição 2 (~15h): a maior do dia. Refeição 3 (~19h30): moderada. No plantão, prefira snacks leves após meia-noite. Qua/Qui antes da faculdade: proteína leve, sem açúcar em excesso.</p></div>
+    <div class="tip-card c-o"><span class="tip-icon">🔁</span><h3>Consistência acima de perfeição</h3><p>Para a leitura: "nunca dois dias sem". Para treino e estudo: 2 de 3 já mantém o progresso. A semana imperfeita que acontece é infinitamente melhor que a perfeita que existe só no papel.</p></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section-title">⚠️ 3 Alertas — erros <span>comuns</span></div>
+  <div class="alerts-grid">
+    <div class="alert-card"><div class="alert-num">01</div><h3>Tentar ser produtivo nas quartas e quintas</h3><p>Você acabou de ficar ~28h acordado. Forçar treino ou estudo piora sua performance nos outros cinco dias. Dormir sem culpa na quarta e quinta também é produtividade.</p></div>
+    <div class="alert-card"><div class="alert-num">02</div><h3>Bagunçar o sono no fim de semana</h3><p>Sábado e domingo são sua folga — mas dormir até as 20h no domingo destrói o ciclo da semana toda. Acorde livremente, mas tente não passar das 11h–12h no domingo. Sua segunda começa às 22h30.</p></div>
+    <div class="alert-card"><div class="alert-num">03</div><h3>Cafeína além das 3h da madrugada</h3><p>Café e energético atrasam o sono depois — especialmente grave nas Qua/Qui, quando você precisa aguentar até as 11h20. Limite cafeína até as 3h. Depois: água gelada, movimento, respira fundo.</p></div>
+  </div>
+
+</div><!-- /tab-dicas -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+// ─── TABS ──────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'tracker') renderAll();
+  });
+});
+
+// ─── HIGHLIGHT TODAY COLUMN IN TABLE ──────────────────────────────────────
+(function() {
+  const today = new Date();
+  const dow = today.getDay(); // 0=Sun
+  const colMap = { 1:'1', 2:'2', 3:'3', 4:'4', 5:'5', 6:'6', 0:'0' };
+  const col = colMap[dow];
+  const th = document.getElementById('th-' + col);
+  if (th) { th.classList.add('today-col'); }
+  document.querySelectorAll(`[id^="c${col}-"]`).forEach(td => td.classList.add('today-col'));
+
+  const DAYS_PT2 = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const note = document.getElementById('today-note');
+  if (note) note.textContent = `📍 Hoje é ${DAYS_PT2[dow]} — coluna destacada em verde.`;
+})();
+
+// ─── TRACKER CONFIG ────────────────────────────────────────────────────────
+const PILLARS = [
+  { id:'zeca',  icon:'🐕', label:'Passeio Zeca',   sub:'30 min logo ao acordar',       color:'#f0a040' },
+  { id:'read',  icon:'📚', label:'Leitura',          sub:'1h (15min nos dias pesados)',   color:'#50d0a0' },
+  { id:'train', icon:'🏋️', label:'Treino',           sub:'Seg · Ter · Sáb',              color:'#e06080' },
+  { id:'study', icon:'🧠', label:'Estudo',           sub:'Ter · Sex · Dom',              color:'#60a0e0' },
+  { id:'food',  icon:'🍽️', label:'Alimentação ok',  sub:'refeições nos horários',       color:'#90c040' },
+  { id:'sleep', icon:'😴', label:'Sono protegido',  sub:'sem interrupções',             color:'#9080d0' },
+  { id:'work',  icon:'🏭', label:'Trabalho',         sub:'3º turno cumprido',            color:'#7050a0' },
+  { id:'free',  icon:'🎮', label:'Tempo livre',      sub:'sem culpa',                    color:'#d09050' },
+];
+
+const DAY_TASKS = {
+  0: ['zeca','read','study','food','sleep','free'],
+  1: ['zeca','read','train','food','sleep','work','free'],
+  2: ['zeca','read','train','study','food','sleep','work','free'],
+  3: ['zeca','read','food','sleep','work','free'],
+  4: ['zeca','read','food','sleep','work','free'],
+  5: ['zeca','read','study','food','sleep','work','free'],
+  6: ['zeca','read','train','food','sleep','free'],
+};
+const HARD_DAYS = [3,4];
+const DAYS_PT   = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const MONTHS_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+const STORAGE_KEY = 'zeca_tracker_v1';
+function loadData() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY))||{}; } catch { return {}; } }
+function saveData(d) { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
+
+let data = loadData();
+let currentDate = new Date(); currentDate.setHours(0,0,0,0);
+
+function dateKey(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function getDay(d)  { return data[dateKey(d)] || { checked:{}, skipped:{} }; }
+function setDay(d,v){ data[dateKey(d)]=v; saveData(data); }
+
+function renderAll() {
+  renderDateDisplay(); renderChecklist(); renderScore();
+  renderWeekDots(); renderStreaks(); renderChart();
+}
+
+function renderDateDisplay() {
+  const d = currentDate;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const isToday = d.getTime()===today.getTime();
+  document.getElementById('date-display').textContent =
+    `${DAYS_PT[d.getDay()]}, ${d.getDate()} ${MONTHS_PT[d.getMonth()]} ${d.getFullYear()}${isToday?' · HOJE':''}`;
+  document.getElementById('hardday-note').style.display = HARD_DAYS.includes(d.getDay()) ? 'block' : 'none';
+}
+
+function renderChecklist() {
+  const dow = currentDate.getDay();
+  const taskIds = DAY_TASKS[dow];
+  const state = getDay(currentDate);
+  const cl = document.getElementById('checklist');
+  cl.innerHTML = '';
+  taskIds.forEach(id => {
+    const p = PILLARS.find(x=>x.id===id);
+    const isChecked = !!(state.checked&&state.checked[id]);
+    const isSkipped = !!(state.skipped&&state.skipped[id]);
+    const item = document.createElement('div');
+    item.className = 'check-item'+(isChecked?' checked':'')+(isSkipped?' skipped':'');
+    item.innerHTML = `
+      <div class="check-box"></div>
+      <span class="check-icon">${p.icon}</span>
+      <div style="flex:1"><div class="check-label">${p.label}</div><div class="check-sub">${p.sub}</div></div>
+      <div class="skip-badge" data-id="${id}">${isSkipped?'pulei':'pular'}</div>`;
+    item.addEventListener('click', e => {
+      if (e.target.classList.contains('skip-badge')) return;
+      const s = getDay(currentDate);
+      s.checked=s.checked||{}; s.skipped=s.skipped||{};
+      if (s.checked[id]) delete s.checked[id];
+      else { s.checked[id]=true; delete s.skipped[id]; }
+      setDay(currentDate, s); renderAll();
+    });
+    item.querySelector('.skip-badge').addEventListener('click', e => {
+      e.stopPropagation();
+      const s = getDay(currentDate);
+      s.skipped=s.skipped||{}; s.checked=s.checked||{};
+      if (s.skipped[id]) delete s.skipped[id];
+      else { s.skipped[id]=true; delete s.checked[id]; }
+      setDay(currentDate, s); renderAll();
+    });
+    cl.appendChild(item);
+  });
+}
+
+function getDayScore(d) {
+  const dow = d.getDay(), taskIds = DAY_TASKS[dow], state = getDay(d);
+  const checked = taskIds.filter(id=>state.checked&&state.checked[id]).length;
+  const skipped = taskIds.filter(id=>state.skipped&&state.skipped[id]).length;
+  const total = taskIds.length - skipped;
+  const pct = total>0 ? Math.round((checked/total)*100) : 0;
+  return { checked, skipped, total, pct, taskIds };
+}
+
+function renderScore() {
+  const { checked, total, pct } = getDayScore(currentDate);
+  document.getElementById('score-pct').textContent = pct+'%';
+  document.getElementById('score-label').textContent = `${checked} de ${total} tarefas`;
+  document.getElementById('score-bar').style.width = pct+'%';
+
+  const dow = currentDate.getDay(), taskIds = DAY_TASKS[dow], state = getDay(currentDate);
+  const ps = document.getElementById('pillar-scores'); ps.innerHTML='';
+  const cats = [
+    { ids:['zeca'],                      icon:'🐕', name:'Zeca',   color:'#f0a040' },
+    { ids:['read'],                      icon:'📚', name:'Leitura',color:'#50d0a0' },
+    { ids:['train'],                     icon:'🏋️', name:'Treino', color:'#e06080' },
+    { ids:['study'],                     icon:'🧠', name:'Estudo', color:'#60a0e0' },
+    { ids:['food','sleep','work','free'],icon:'⚙️', name:'Rotina', color:'#9080d0' },
+  ];
+  cats.forEach(cat => {
+    const rel = cat.ids.filter(id=>taskIds.includes(id)); if (!rel.length) return;
+    const done = rel.filter(id=>state.checked&&state.checked[id]).length;
+    const skip = rel.filter(id=>state.skipped&&state.skipped[id]).length;
+    const tot = rel.length-skip, pct2 = tot>0?Math.round((done/tot)*100):0;
+    const row = document.createElement('div'); row.className='pillar-row';
+    row.innerHTML=`<div class="pillar-icon">${cat.icon}</div><div class="pillar-name">${cat.name}</div>
+      <div class="pillar-bar-wrap"><div class="pillar-bar-fill" style="width:${pct2}%;background:${cat.color}"></div></div>
+      <div class="pillar-count">${done}/${tot}</div>`;
+    ps.appendChild(row);
+  });
+}
+
+function renderWeekDots() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const wd = document.getElementById('week-dots'); wd.innerHTML='';
+  for (let i=6; i>=0; i--) {
+    const d = new Date(today); d.setDate(d.getDate()-i);
+    const { pct } = getDayScore(d);
+    const isCurrent = d.getTime()===currentDate.getTime();
+    let cls='week-dot';
+    if (pct>=80) cls+=' full'; else if (pct>=40) cls+=' partial'; else if (pct>0) cls+=' low';
+    if (isCurrent) cls+=' today-ring';
+    const dot = document.createElement('div'); dot.className=cls;
+    dot.innerHTML=`<div>${DAYS_PT[d.getDay()]}</div><div class="week-dot-lbl">${pct}%</div>`;
+    dot.style.cursor='pointer';
+    dot.addEventListener('click', ()=>{ currentDate=new Date(d); renderAll(); });
+    wd.appendChild(dot);
+  }
+}
+
+function renderStreaks() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  let cur=0; const d=new Date(today);
+  while (true) {
+    const { pct, taskIds } = getDayScore(d);
+    const hasData = taskIds.some(id=>{ const s=getDay(d); return (s.checked&&s.checked[id])||(s.skipped&&s.skipped[id]); });
+    if (!hasData && d.getTime()<today.getTime()) break;
+    if (pct>=50){ cur++; d.setDate(d.getDate()-1); } else if (d.getTime()===today.getTime()){ d.setDate(d.getDate()-1); break; } else break;
+    if (cur>365) break;
+  }
+  const keys=Object.keys(data).sort(); let best=0, tb=0;
+  keys.forEach(k=>{
+    const [y,m,dd]=k.split('-').map(Number), dObj=new Date(y,m-1,dd), dow=dObj.getDay();
+    const taskIds=DAY_TASKS[dow], state=data[k];
+    const checked=taskIds.filter(id=>state.checked&&state.checked[id]).length;
+    const skipped=taskIds.filter(id=>state.skipped&&state.skipped[id]).length;
+    const total=taskIds.length-skipped, pct=total>0?Math.round((checked/total)*100):0;
+    if (pct>=50){ tb++; best=Math.max(best,tb); } else tb=0;
+  });
+  document.getElementById('streak-cur').textContent=cur;
+  document.getElementById('streak-best').textContent=Math.max(best,cur);
+}
+
+let chartInstance=null;
+function renderChart() {
+  const today=new Date(); today.setHours(0,0,0,0);
+  const dateSet=new Set(Object.keys(data));
+  for (let i=13; i>=0; i--){ const d=new Date(today); d.setDate(d.getDate()-i); dateSet.add(dateKey(d)); }
+  const sortedKeys=Array.from(dateSet).sort();
+  const labels=[],scores=[],trainDots=[],studyDots=[],zecaDots=[],readDots=[];
+  sortedKeys.forEach(k=>{
+    const [y,m,dd]=k.split('-').map(Number), dObj=new Date(y,m-1,dd), dow=dObj.getDay();
+    const taskIds=DAY_TASKS[dow], state=data[k]||{checked:{},skipped:{}};
+    const checked=taskIds.filter(id=>state.checked&&state.checked[id]).length;
+    const skipped=taskIds.filter(id=>state.skipped&&state.skipped[id]).length;
+    const total=taskIds.length-skipped, pct=total>0?Math.round((checked/total)*100):0;
+    labels.push(`${dd}/${m}`); scores.push(pct);
+    trainDots.push(taskIds.includes('train')&&state.checked&&state.checked['train']?pct:null);
+    studyDots.push(taskIds.includes('study')&&state.checked&&state.checked['study']?pct:null);
+    zecaDots.push(state.checked&&state.checked['zeca']?pct:null);
+    readDots.push(state.checked&&state.checked['read']?pct:null);
+  });
+  const ctx=document.getElementById('prodChart').getContext('2d');
+  if (chartInstance) chartInstance.destroy();
+  chartInstance=new Chart(ctx,{
+    type:'line',
+    data:{ labels, datasets:[
+      { label:'Score %', data:scores, borderColor:'#7c6af7', backgroundColor:'rgba(124,106,247,0.08)',
+        borderWidth:2.5, pointRadius:4, pointBackgroundColor:scores.map((_,i)=>{
+          const k=sortedKeys[i]; const [y,m,dd]=k.split('-').map(Number);
+          return new Date(y,m-1,dd).getTime()===currentDate.getTime()?'#fff':'#7c6af7';
+        }), pointBorderColor:'#7c6af7', pointBorderWidth:2, fill:true, tension:0.35, order:1 },
+      { label:'🐕 Zeca', data:zecaDots, borderColor:'transparent', backgroundColor:'#f0a040', pointRadius:6, pointStyle:'circle', showLine:false, order:0 },
+      { label:'🏋️ Treino', data:trainDots, borderColor:'transparent', backgroundColor:'#e06080', pointRadius:5, pointStyle:'triangle', showLine:false, order:0 },
+      { label:'🧠 Estudo', data:studyDots, borderColor:'transparent', backgroundColor:'#60a0e0', pointRadius:5, pointStyle:'rect', showLine:false, order:0 },
+      { label:'📚 Leitura', data:readDots, borderColor:'transparent', backgroundColor:'#50d0a0', pointRadius:4, pointStyle:'rectRot', showLine:false, order:0 },
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      interaction:{ mode:'index', intersect:false },
+      plugins:{
+        legend:{ labels:{ color:'#7070a0', font:{family:'Space Mono',size:11}, boxWidth:12, padding:14 } },
+        tooltip:{ backgroundColor:'#181830', borderColor:'#2a2a4a', borderWidth:1,
+          titleColor:'#e8e8f5', bodyColor:'#7070a0',
+          titleFont:{family:'Space Mono',size:11}, bodyFont:{family:'Syne',size:11},
+          callbacks:{ label:(c)=>{
+            if (c.dataset.label==='Score %') return ` Score: ${c.raw}%`;
+            if (c.raw!==null) return ` ${c.dataset.label} ✓`;
+            return null;
+          }}
+        }
+      },
+      scales:{
+        x:{ ticks:{color:'#7070a0',font:{family:'Space Mono',size:10},maxRotation:45}, grid:{color:'rgba(255,255,255,0.04)'}, border:{color:'#2a2a4a'} },
+        y:{ min:0, max:100, ticks:{color:'#7070a0',font:{family:'Space Mono',size:10},callback:v=>v+'%',stepSize:25}, grid:{color:'rgba(255,255,255,0.05)'}, border:{color:'#2a2a4a'} }
+      }
+    }
+  });
+}
+
+document.getElementById('prev-btn').addEventListener('click',()=>{ currentDate.setDate(currentDate.getDate()-1); renderAll(); });
+document.getElementById('next-btn').addEventListener('click',()=>{
+  const tomorrow=new Date(); tomorrow.setHours(0,0,0,0); tomorrow.setDate(tomorrow.getDate()+1);
+  if (currentDate<tomorrow){ currentDate.setDate(currentDate.getDate()+1); renderAll(); }
+});
+document.getElementById('today-btn').addEventListener('click',()=>{ currentDate=new Date(); currentDate.setHours(0,0,0,0); renderAll(); });
+document.getElementById('reset-btn').addEventListener('click',()=>{
+  if (confirm('⚠️ Apagar TODOS os dados do tracker? Não pode ser desfeito.')) { localStorage.removeItem(STORAGE_KEY); data={}; renderAll(); }
+});
+</script>
+</body>
+</html>
